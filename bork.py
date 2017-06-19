@@ -12,7 +12,7 @@ class Area():
 
     print(self.name + '\n')
     print('-' * len(self.name))
-    print('\n' + self.desc + '\n')
+    print('\n' + self.getDescription() + '\n')
     current_area = self
 
   def find(self, thing):
@@ -23,6 +23,9 @@ class Area():
         return obj
 
     return None
+  
+  def getDescription(self):
+    return self.desc(inventory)
 
 class Object():
   def __init__(self, opts):
@@ -47,6 +50,13 @@ class Command():
 def basement_light_off():
   print('You turn off the light.')
   
+def open_door():
+  if 'a crowbar' in inventory:
+    print('You force open the door using the crowbar and go through it and up the stairs.')
+    areas = kitchen
+  else:
+    print('You can\'t do that - the door is firmly bolted shut.')
+  
 def floorboard_up():
   print('You lift up the floorboard, and there is a crowbar.')
   current_area.desc = 'In this small basement is a door faintly lit by a hanging light. A floorboard has been forced open, and there is a crowbar below it.'
@@ -58,17 +68,41 @@ def floorboard_up():
     ]
   })
   
+def open_fridge():
+  print('You open the fridge, and there is a bottle of water.')
+  current_area.desc = 'You are in a large kitchen, there is an open fridge with a bottle inside, and a dining table with a sandwich on top, there is a locked door and a window which is boarded up.'
+  
+  current_area.objs['water'] = Object({
+    'names': [ 'water', 'bottle' ],
+    'commands': [
+      Command([ 'pick up', 'take', 'pick up bottle of', 'take bottle of' ], water_taken)
+    ]
+  })
+  
 def crowbar_taken():
   print('You pick up the crowbar.')
   del current_area.objs['crowbar']
   current_area.desc = 'In this small basement is a door faintly lit by a hanging light. A floorboard has been forced open.'
 
   inventory.append('a crowbar')
+  
+def water_taken():
+  print('You have taken the bottle of water.')
+  del current_area.objs['water']
+  current_area.desc = 'You are in a large kitchen, there is an empty fridge, and a dining table with a sandwich on top, there is a locked door and a window which is boarded up.'
+
+  inventory.append('a bottle of water')
+
+def basement_desc(inv):
+  return "In this small basement is a door faintly lit by a hanging light. A floorboard looks loose, clearly it needs some attention."
+
+def kitchen_desc(inv):
+  return "You are in a large kitchen, there is a fridge, and a dining table with a sandwich on top, there is a locked door and a window which is boarded up."
 
 areas = {
   'basement': Area({
     'name': "Basement",
-    'desc': "In this small basement is a door faintly lit by a hanging light. A floorboard looks loose, clearly it needs some attention.",
+    'desc': basement_desc,
     'objs': {
       'light': Object({
         'names': [ 'light', 'lamp' ],
@@ -81,9 +115,27 @@ areas = {
         'commands': [
           Command([ 'lift up', 'open' ], floorboard_up)
         ]
+      }),
+       'door': Object({
+        'names': [ 'door'],
+        'commands': [
+          Command([ 'open' ], open_door)
+        ]
       })
     }
   }),
+  'kitchen': Area({
+    'name': "kitchen",
+    'desc': kitchen_desc,
+    'objs': {
+       'fridge': Object({
+        'names': [ 'fridge', 'refrigerator' ],
+        'commands': [
+          Command([ 'open' ], open_fridge)
+        ]
+      })
+    }
+  })
 }
 
 def look():
@@ -140,4 +192,8 @@ def get_command():
 areas['basement'].enter()
 while True:
   get_command()
+
+
+
+
 
