@@ -6,14 +6,15 @@ class Area():
     self.name = opts['name']
     self.desc = opts['desc']
     self.objs = opts['objs']
+    self.data = opts['data']
 
   def enter(self):
     global current_area
+    current_area = self
 
     print(self.name + '\n')
     print('-' * len(self.name))
     print('\n' + self.getDescription() + '\n')
-    current_area = self
 
   def find(self, thing):
     # find an object with 'thing' as its name
@@ -50,17 +51,34 @@ class Command():
 def basement_light_off():
   print('You turn off the light.')
   
+def read_paper():
+  print('Welcome to bork. A text based adventure game, written fully in python')
+  
 def open_door():
+  if current_area.data['door_is_open'] == True:
+    print('You go back to the kitchen.')
+    return areas['kitchen'].enter()
+
   if 'a crowbar' in inventory:
     print('You force open the door using the crowbar and go through it and up the stairs.')
-    areas = kitchen
+    areas['kitchen'].enter()
   else:
     print('You can\'t do that - the door is firmly bolted shut.')
+    
+def open_study_door():
+  if current_area.data['study_door_is_open'] == True:
+    print('You go through to the study.')
+    return areas['study'].enter()
+
+  if 'a crowbar' in inventory:
+    print('You force open the door using the crowbar and go through it.')
+    areas['study'].enter()
+  else:
+    print('You can\'t do that - the door is nailed shut.')    
   
 def floorboard_up():
   print('You lift up the floorboard, and there is a crowbar.')
-  current_area.desc = 'In this small basement is a door faintly lit by a hanging light. A floorboard has been forced open, and there is a crowbar below it.'
-  
+
   current_area.objs['crowbar'] = Object({
     'names': [ 'crowbar', 'bar' ],
     'commands': [
@@ -68,9 +86,18 @@ def floorboard_up():
     ]
   })
   
+def to_basement():
+  print('You go through the open door and down the stairs.')
+  areas['basement'].enter()
+  
+def to_kitchen():
+  print('You go through the door and enter the kitchen')
+  areas['kitchen'].enter()
+
 def open_fridge():
   print('You open the fridge, and there is a bottle of water.')
-  current_area.desc = 'You are in a large kitchen, there is an open fridge with a bottle inside, and a dining table with a sandwich on top, there is a locked door and a window which is boarded up.'
+  # TODO: fix below line
+  ##current_area.desc = 'You are in a large kitchen, there is an open fridge with a bottle inside, and a dining table with a sandwich on top, there is a locked door and a window which is boarded up.'
   
   current_area.objs['water'] = Object({
     'names': [ 'water', 'bottle' ],
@@ -82,7 +109,7 @@ def open_fridge():
 def crowbar_taken():
   print('You pick up the crowbar.')
   del current_area.objs['crowbar']
-  current_area.desc = 'In this small basement is a door faintly lit by a hanging light. A floorboard has been forced open.'
+  #current_area.desc = 'In this small basement is a door faintly lit by a hanging light. A floorboard has been forced open.'
 
   inventory.append('a crowbar')
   
@@ -94,15 +121,23 @@ def water_taken():
   inventory.append('a bottle of water')
 
 def basement_desc(inv):
-  return "In this small basement is a door faintly lit by a hanging light. A floorboard looks loose, clearly it needs some attention."
+  desc = "In this small basement is a door faintly lit by a hanging light. A floorboard looks loose, clearly it needs some attention."
+  if current_area.data['door_is_open'] == True:
+    desc = desc + " The door is unlocked; leading upstairs into the kitchen."
+  return desc
 
 def kitchen_desc(inv):
-  return "You are in a large kitchen, there is a fridge, and a dining table with a sandwich on top, there is a locked door and a window which is boarded up."
+  return "You are in a large kitchen, there is a fridge, and a dining table. An open door leads downstairs into the basement, and a locked door next to the fridge."
+  
+def study_desc(inv):
+  return "You are in a small study, there is a pen and a piece of paper on the desk. There is an open door leading through to the kitchen and a locked door."
+  
 
 areas = {
   'basement': Area({
     'name': "Basement",
     'desc': basement_desc,
+    'data': { 'door_is_open': False },
     'objs': {
       'light': Object({
         'names': [ 'light', 'lamp' ],
@@ -113,7 +148,7 @@ areas = {
       'floorboard': Object({
         'names': [ 'board', 'floorboard' ],
         'commands': [
-          Command([ 'lift up', 'open' ], floorboard_up)
+          Command([ 'lift up', 'open', 'lift' ], floorboard_up)
         ]
       }),
        'door': Object({
@@ -127,15 +162,47 @@ areas = {
   'kitchen': Area({
     'name': "kitchen",
     'desc': kitchen_desc,
+    'data': {},
     'objs': {
        'fridge': Object({
-        'names': [ 'fridge', 'refrigerator' ],
-        'commands': [
-          Command([ 'open' ], open_fridge)
+          'names': [ 'fridge', 'refrigerator' ],
+          'commands': [
+            Command([ 'open' ], open_fridge)
+          ]
+        }),
+        'downstairs': Object({
+          'names': [ 'downstairs', 'basement' ],
+          'commands': [
+            Command([ 'go', 'go to', 'go into', 'go to the', 'enter' ], to_basement)
+          ]
+        })
+      }
+    }),
+    'Study': Area({
+    'name': "study",
+    'desc': study_desc,
+    'data': {},
+    'objs': {
+       'paper': Object({
+          'names': [ 'paper', 'report' ],
+          'commands': [
+            Command([ 'read' ], read_paper)
+          ]
+        }),
+        'kitchen': Object({
+          'names': [ 'door', 'kitchen' ],
+          'commands': [
+            Command([ 'go', 'go to', 'go into', 'go to the', 'enter', 'go through' ], to_kitchen)
+          ]
+        }),
+        'study_door': Object({
+          'names': [ 'door','studydoor', 'study'],
+          'commands': [
+            Command([ 'open study','open', 'force open', 'go to', 'go to the' ], open_study_door)
         ]
       })
-    }
-  })
+      }
+    })  
 }
 
 def look():
@@ -192,8 +259,3 @@ def get_command():
 areas['basement'].enter()
 while True:
   get_command()
-
-
-
-
-
